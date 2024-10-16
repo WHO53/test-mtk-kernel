@@ -729,18 +729,14 @@ static struct snd_soc_dai_link
 #else
 static struct snd_soc_dai_link
 	mt_soc_dai_component[ARRAY_SIZE(mt_soc_dai_common) +
-			     ARRAY_SIZE(mt_soc_exthp_dai) +
-			     ARRAY_SIZE(mt_soc_extspk_dai)];
-#endif
-/* Akita */
-
-static struct snd_soc_dai_link
-	mt_soc_dai_component[ARRAY_SIZE(mt_soc_dai_common) +
 #ifdef CONFIG_SND_SOC_MTK_BTCVSD
 			     ARRAY_SIZE(mt_soc_btcvsd_dai) +
 #endif
 			     ARRAY_SIZE(mt_soc_exthp_dai) +
 			     ARRAY_SIZE(mt_soc_extspk_dai)];
+#endif
+/* Akita */
+
 
 static struct snd_soc_card mt_snd_soc_card_mt = {
 	.name = "mt-snd-card",
