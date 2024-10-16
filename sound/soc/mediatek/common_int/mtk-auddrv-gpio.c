@@ -95,8 +95,8 @@ enum audio_system_gpio_type {
     /* Akita */
     GPIO_HS_HIGH,
     GPIO_HS_LOW,
-    GPIO_HS_DBMDX_I2S_ON,
-    GPIO_HS_DBMDX_I2S_OFF,
+    GPIO_DBMDX_I2S_ON,
+    GPIO_DBMDX_I2S_OFF,
     /* Akita */
 	GPIO_HPDEPOP_HIGH,
 	GPIO_HPDEPOP_LOW,
@@ -156,8 +156,8 @@ static struct audio_gpio_attr aud_gpios[GPIO_NUM] = {
         /* Akita */
         [GPIO_HS_HIGH] = {"aud_hw_sw_on", false, NULL},
         [GPIO_HS_LOW] = {"aud_hw_sw_off", false, NULL},
-        [GPIO_HS_DBMDX_I2S_ON] = {"aud_dbmdx_on", false, NULL},
-        [GPIO_HS_DBMDX_I2S_OFF] = {"aud_dbmdx_off", false, NULL},
+        [GPIO_DBMDX_I2S_ON] = {"aud_dbmdx_on", false, NULL},
+        [GPIO_DBMDX_I2S_OFF] = {"aud_dbmdx_off", false, NULL},
         /* Akita */
 };
 #endif
