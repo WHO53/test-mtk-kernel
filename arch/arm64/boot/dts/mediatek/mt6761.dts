@@ -632,6 +632,10 @@ firmware_class.path=/vendor/firmware";
 		status = "okay";
 	};
 
+    lcm: lcm_gpio {
+        compatible = "mediatek,lcm_gpio";
+    };
+
 	touch: touch {
 		compatible = "mediatek,touch";
 	};
