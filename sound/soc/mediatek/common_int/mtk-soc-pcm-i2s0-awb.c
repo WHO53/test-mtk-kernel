@@ -104,21 +104,6 @@ static struct snd_pcm_hardware mtk_I2S0_awb_hardware = {
 #endif
 /* Akita */
 
-static struct snd_pcm_hardware mtk_I2S0_awb_hardware = {
-	.info = (SNDRV_PCM_INFO_INTERLEAVED),
-	.formats = SND_SOC_STD_MT_FMTS,
-	.rates = SOC_HIGH_USE_RATE,
-	.rate_min = SOC_HIGH_USE_RATE_MIN,
-	.rate_max = SOC_HIGH_USE_RATE_MAX,
-	.channels_min = SOC_NORMAL_USE_CHANNELS_MIN,
-	.channels_max = SOC_NORMAL_USE_CHANNELS_MAX,
-	.buffer_bytes_max = AWB_MAX_BUFFER_SIZE,
-	.period_bytes_max = AWB_MAX_BUFFER_SIZE,
-	.periods_min = AWB_MIN_PERIOD_SIZE,
-	.periods_max = AWB_MAX_PERIOD_SIZE,
-	.fifo_size = 0,
-};
-
 static void StopAudioI2sInAWBHardware(struct snd_pcm_substream *substream)
 {
 	/* stop connection between default i2s in(i2s0) and awb.
