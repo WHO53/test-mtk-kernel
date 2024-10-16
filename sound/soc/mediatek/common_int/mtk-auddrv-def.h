@@ -227,6 +227,12 @@
 #define MT_SOC_DL1_STREAM_NAME "MultiMedia1_PLayback"
 #define MT_SOC_SPEAKER_STREAM_NAME "Speaker_PLayback"
 #define MT_SOC_HEADPHONE_STREAM_NAME "Headphone_PLayback"
+/* Akita */
+#ifdef CONFIG_SND_SOC_DBMDX
+#define MT_SOC_DBMDX_RX_STREAM_NAME "Dbmdx_PLayback"
+#define MT_SOC_DBMDX_TX_STREAM_NAME "Dbmdx_Capture"
+#endif
+/* Akita */
 #define MT_SOC_DEEP_BUFFER_DL_STREAM_NAME "Deep_Buffer_PLayback"
 #define MT_SOC_DL2_STREAM_NAME "MultiMedia2_PLayback"
 #define MT_SOC_DL3_STREAM_NAME "MultiMedia3_PLayback"

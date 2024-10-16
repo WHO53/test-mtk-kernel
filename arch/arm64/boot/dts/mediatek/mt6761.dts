@@ -644,6 +644,14 @@ firmware_class.path=/vendor/firmware";
 		compatible = "mediatek,pmic-accdet";
 	};
 
+    dbmdx : dbmdx {
+        compatible = "dspg,dbmdx-codec";
+    };
+
+    dbmdx_soundcard : dbmdx-soundcard {
+        compatible = "dspg,dbmdx-soundcard";
+    };
+
 	goodix_fp: fingerprint {
 		compatible = "mediatek,goodix-fp";
 	};

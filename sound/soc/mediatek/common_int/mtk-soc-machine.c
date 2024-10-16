@@ -642,6 +642,29 @@ static struct snd_soc_dai_link mt_soc_btcvsd_dai[] = {
 };
 #endif
 
+/* Akita */
+#ifdef CONFIG_SND_SOC_DBMDX
+static struct snd_soc_dai_link mt_soc_dbmdx_dai[] = {
+	{
+		.name = "ext_Dbmdx_Capture_Multimedia",
+		.stream_name = MT_SOC_DBMDX_TX_STREAM_NAME,
+		.cpu_dai_name = MT_SOC_I2S0AWBDAI_NAME,
+		.platform_name = MT_SOC_I2S0_AWB_PCM,
+		.codec_dai_name = "DBMDX_i2s_codec",
+		.codec_name = "dbmdx",
+	},
+	{
+		.name = "ext_Dbmdx_Playback_Multimedia",
+		.stream_name = MT_SOC_DBMDX_RX_STREAM_NAME,
+		.cpu_dai_name = MT_SOC_I2S0DL1_NAME,
+		.platform_name = MT_SOC_I2S0DL1_PCM,
+		.codec_dai_name = "DBMDX_i2s_codec",
+		.codec_name = "dbmdx",
+	},
+};
+#endif
+/* Akita */
+
 static struct snd_soc_dai_link mt_soc_exthp_dai[] = {
 	{
 		.name = "ext_Headphone_Multimedia",
@@ -696,6 +719,21 @@ static struct snd_soc_dai_link mt_soc_extspk_dai[] = {
 	},
 };
 
+/* Akita */
+#ifdef CONFIG_SND_SOC_DBMDX
+static struct snd_soc_dai_link
+	mt_soc_dai_component[ARRAY_SIZE(mt_soc_dai_common) +
+			     ARRAY_SIZE(mt_soc_exthp_dai) +
+			     ARRAY_SIZE(mt_soc_extspk_dai) +
+			     ARRAY_SIZE(mt_soc_dbmdx_dai)];
+#else
+static struct snd_soc_dai_link
+	mt_soc_dai_component[ARRAY_SIZE(mt_soc_dai_common) +
+			     ARRAY_SIZE(mt_soc_exthp_dai) +
+			     ARRAY_SIZE(mt_soc_extspk_dai)];
+#endif
+/* Akita */
+
 static struct snd_soc_dai_link
 	mt_soc_dai_component[ARRAY_SIZE(mt_soc_dai_common) +
 #ifdef CONFIG_SND_SOC_MTK_BTCVSD
@@ -714,6 +752,11 @@ static void get_ext_dai_codec_name(void)
 {
 	get_extspk_dai_codec_name(mt_soc_extspk_dai);
 	get_exthp_dai_codec_name(mt_soc_exthp_dai);
+    /* Akita */
+#ifdef CONFIG_SND_SOC_DBMDX
+	get_exthp_dai_codec_name(mt_soc_dbmdx_dai);
+#endif
+    /* Akita */
 }
 
 static int mt_soc_snd_probe(struct platform_device *pdev)
@@ -761,6 +804,14 @@ static int mt_soc_snd_probe(struct platform_device *pdev)
 	memcpy(mt_soc_dai_component + daiLinkNum, mt_soc_extspk_dai,
 	       sizeof(mt_soc_extspk_dai));
 	daiLinkNum += ARRAY_SIZE(mt_soc_extspk_dai);
+
+    /* Akita */
+#ifdef CONFIG_SND_SOC_DBMDX
+	memcpy(mt_soc_dai_component + daiLinkNum, mt_soc_dbmdx_dai,
+	       sizeof(mt_soc_dbmdx_dai));
+	daiLinkNum += ARRAY_SIZE(mt_soc_dbmdx_dai);
+#endif
+    /* Akita */
 
 	mt_snd_soc_card_mt.dai_link = mt_soc_dai_component;
 	mt_snd_soc_card_mt.num_links = daiLinkNum;

@@ -75,6 +75,10 @@ int AudDrv_GPIO_TDM_Select(int mode);
 int AudDrv_GPIO_I2S_Select(int bEnable);
 int AudDrv_GPIO_EXTAMP_Select(int bEnable, int mode);
 int AudDrv_GPIO_EXTAMP2_Select(int bEnable, int mode);
+/* Akita */
+int Headset_sw_Control(int bEnable);
+int Dbmdx_i2s_Control(int bEnable);
+/* Akita */
 int AudDrv_GPIO_RCVSPK_Select(int bEnable);
 int AudDrv_GPIO_HPDEPOP_Select(int bEnable);
 

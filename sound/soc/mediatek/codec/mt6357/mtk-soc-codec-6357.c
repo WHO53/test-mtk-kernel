@@ -70,6 +70,10 @@
 /* HP IMPEDANCE Current Calibration from EFUSE */
 /* #define EFUSE_HP_IMPEDANCE */
 /* static function declaration */
+/* Akita */
+bool dspg_micbias_status=false;
+static bool mtk_micbias_status;
+/* Akita */
 static bool AudioPreAmp1_Sel(int Mul_Sel);
 static bool GetAdcStatus(void);
 static void TurnOffDacPower(void);
@@ -3633,6 +3637,14 @@ static void Ext_Speaker_Amp_Change(bool enable)
 		udelay(500);
 	}
 }
+
+/* Akita */
+extern unsigned char aw87519_left_audio_speaker(void);
+extern unsigned char aw87519_left_audio_off(void);
+extern unsigned char aw87519_right_audio_speaker(void);
+extern unsigned char aw87519_right_audio_off(void);
+/* Akita */
+
 static int Ext_Speaker_Amp_Get(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
 {
@@ -3648,6 +3660,10 @@ static int Ext_Speaker_Amp_Set(struct snd_kcontrol *kcontrol,
 	pr_debug("%s() gain = %ld\n ", __func__,
 		 ucontrol->value.integer.value[0]);
 	if (ucontrol->value.integer.value[0]) {
+        /* Akita */
+        aw87519_left_audio_speaker();
+        aw87519_right_audio_speaker();
+        /* Akita */
 		Ext_Speaker_Amp_Change(true);
 		mCodec_data->mAudio_Ana_DevicePower
 			[AUDIO_ANALOG_DEVICE_OUT_EXTSPKAMP] =
@@ -3656,10 +3672,124 @@ static int Ext_Speaker_Amp_Set(struct snd_kcontrol *kcontrol,
 		mCodec_data->mAudio_Ana_DevicePower
 			[AUDIO_ANALOG_DEVICE_OUT_EXTSPKAMP] =
 		    ucontrol->value.integer.value[0];
+        /* Akita */
+        aw87519_left_audio_off();
+        aw87519_right_audio_off();
+        /* Akita */
 		Ext_Speaker_Amp_Change(false);
 	}
 	return 0;
 }
+
+/* Akita */
+static int Micbias0_Get(struct snd_kcontrol *kcontrol,
+                               struct snd_ctl_elem_value *ucontrol)
+{
+       /* pr_debug("Audio_ADC1_Get = %d\n",
+        * mCodec_data->mAudio_Ana_DevicePower
+        * [AUDIO_ANALOG_DEVICE_IN_ADC1]);
+        */
+       ucontrol->value.integer.value[0] =
+           mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_MICBIAS0];
+       return 0;
+}
+static int Micbias0_Set(struct snd_kcontrol *kcontrol,
+                               struct snd_ctl_elem_value *ucontrol)
+{
+       pr_debug("%s()\n", __func__);
+       mutex_lock(&Ana_Power_Mutex);
+       if (ucontrol->value.integer.value[0]) {
+	dspg_micbias_status=true;
+        /* Enable audio globe bias */
+               NvregEnable(true);
+        /* Enable dspg mic */
+               /* Enable MICBIAS0, MISBIAS0 = 1P9V */
+               Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0xffff);
+               mCodec_data->mAudio_Ana_DevicePower
+                       [AUDIO_ANALOG_DEVICE_OUT_MICBIAS0] =
+                   ucontrol->value.integer.value[0];
+       } else {
+		dspg_micbias_status=false;
+        /* Disable dspg mic */
+               /* Disable MICBIAS0, MISBIAS0 = 1P7V */
+		if(!mtk_micbias_status){
+               Ana_Set_Reg(AUDENC_ANA_CON8, 0x0000, 0xffff);
+        NvregEnable(false);
+               mCodec_data->mAudio_Ana_DevicePower
+                       [AUDIO_ANALOG_DEVICE_OUT_MICBIAS0] =
+                   ucontrol->value.integer.value[0];
+		}
+       }
+       mutex_unlock(&Ana_Power_Mutex);
+       return 0;
+}
+
+static int Headset_Sw_Switch_Get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+	pr_err("%s()\n", __func__);
+	ucontrol->value.integer.value[0] =
+	    mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_HS_SW];
+	return 0;
+}
+static int Headset_Sw_Switch_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+	pr_err("%s() hs switch = %ld\n ", __func__, ucontrol->value.integer.value[0]);
+	if (ucontrol->value.integer.value[0]) {
+		Headset_sw_Control(true);
+		mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_HS_SW] =
+		    ucontrol->value.integer.value[0];
+	} else {
+		mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_HS_SW] =
+		    ucontrol->value.integer.value[0];
+		Headset_sw_Control(false);
+	}
+	return 0;
+}
+static int Speaker_Left_Pa_Get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+	pr_err("%s()\n", __func__);
+	ucontrol->value.integer.value[0] =
+	    mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_SPK_LEFT_PA];
+	return 0;
+}
+static int Speaker_Left_Pa_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+	pr_err("%s()  spk pa = %ld\n ", __func__, ucontrol->value.integer.value[0]);
+	if (ucontrol->value.integer.value[0]) {
+		aw87519_left_audio_speaker();
+		mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_SPK_LEFT_PA] =
+		    ucontrol->value.integer.value[0];
+	} else {
+		mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_SPK_LEFT_PA] =
+		    ucontrol->value.integer.value[0];
+		aw87519_left_audio_off();
+	}
+	return 0;
+}
+static int Speaker_Right_Pa_Get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+	pr_err("%s()\n", __func__);
+	ucontrol->value.integer.value[0] =
+	    mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_SPK_RIGHT_PA];
+	return 0;
+}
+static int Speaker_Right_Pa_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+	pr_err("%s()  spk pa = %ld\n ", __func__, ucontrol->value.integer.value[0]);
+	if (ucontrol->value.integer.value[0]) {
+		aw87519_right_audio_speaker();
+		mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_SPK_RIGHT_PA] =
+		    ucontrol->value.integer.value[0];
+	} else {
+		mCodec_data->mAudio_Ana_DevicePower[AUDIO_ANALOG_DEVICE_OUT_SPK_RIGHT_PA] =
+		    ucontrol->value.integer.value[0];
+		aw87519_right_audio_off();
+	}
+	return 0;
+}
+
+/* Akita */
+
 static void Receiver_Speaker_Switch_Change(bool enable)
 {
 #ifndef CONFIG_FPGA_EARLY_PORTING
@@ -4338,6 +4468,12 @@ static const struct soc_enum Audio_DL_Enum[] = {
 			    dctrim_control_state),
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(apply_n12db_setting),
 			    apply_n12db_setting),
+    /* Akita */
+    SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(amp_function), amp_function),
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(amp_function), amp_function),
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(amp_function), amp_function),
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(amp_function), amp_function),
+    /* Akita */
 };
 static const struct snd_kcontrol_new mt6357_snd_controls[] = {
 	SOC_ENUM_EXT("Audio_Amp_R_Switch", Audio_DL_Enum[0], Audio_AmpR_Get,
@@ -4391,6 +4527,20 @@ static const struct snd_kcontrol_new mt6357_snd_controls[] = {
 		     hp_plugged_in_get, hp_plugged_in_set),
 	SOC_ENUM_EXT("Apply_N12DB_Gain", Audio_DL_Enum[14],
 		     apply_n12db_get, apply_n12db_set),
+    /* Akita */
+    SOC_ENUM_EXT("Headset_Sw_Switch", Audio_DL_Enum[15],
+		     Headset_Sw_Switch_Get,
+		     Headset_Sw_Switch_Set),
+	SOC_ENUM_EXT("Speaker_Left_Pa_Switch", Audio_DL_Enum[16],
+		     Speaker_Left_Pa_Get,
+		     Speaker_Left_Pa_Set),
+	SOC_ENUM_EXT("Speaker_Right_Pa_Switch", Audio_DL_Enum[16],
+		     Speaker_Right_Pa_Get,
+		     Speaker_Right_Pa_Set),
+    SOC_ENUM_EXT("Micbias0_Switch", Audio_DL_Enum[17],
+             Micbias0_Get,
+             Micbias0_Set),
+    /* Akita */
 };
 void SetMicPGAGain(void)
 {
@@ -4438,6 +4588,9 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
 			/* mic bias */
 			if (mCodec_data->mAudio_Ana_Mux
 				[AUDIO_MICSOURCE_MUX_IN_1] == 0) {
+                /* Akita */
+                mtk_micbias_status=true;
+                /* Akita */
 				/* phone mic */
 				/* Enable MICBIAS0, MISBIAS0 = 1P9V */
 				Ana_Set_Reg(AUDENC_ANA_CON8, 0x0021, 0xffff);
@@ -4542,8 +4695,16 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
 			/* mic bias */
 			if (mCodec_data->mAudio_Ana_Mux
 				[AUDIO_MICSOURCE_MUX_IN_1] == 0) {
+                /* Akita */
+                mtk_micbias_status=false;
+                /* Akita */
 				/* phone mic */
 				/* Disable MICBIAS0, MISBIAS0 = 1P7V */
+                /* Akita */
+                if(!dspg_micbias_status)
+                /* Akita */
+                mtk_micbias_status=false;
+                mtk_micbias_status=false;
 				Ana_Set_Reg(AUDENC_ANA_CON8, 0x0000, 0xffff);
 			} else if (mCodec_data->mAudio_Ana_Mux
 					[AUDIO_MICSOURCE_MUX_IN_1] == 1) {
@@ -4564,6 +4725,9 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
 			Topck_Enable(false);
 			/* ClsqAuxEnable(false); */
 			ClsqEnable(false);
+            /* Akita */
+            if(!dspg_micbias_status)
+            /* Akita */
 			NvregEnable(false);
 			audckbufEnable(false);
 		}

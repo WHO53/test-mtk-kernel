@@ -92,6 +92,12 @@ enum audio_system_gpio_type {
 	GPIO_RCVSPK_HIGH,
 	GPIO_RCVSPK_LOW,
 #endif
+    /* Akita */
+    GPIO_HS_HIGH,
+    GPIO_HS_LOW,
+    GPIO_HS_DBMDX_I2S_ON,
+    GPIO_HS_DBMDX_I2S_OFF,
+    /* Akita */
 	GPIO_HPDEPOP_HIGH,
 	GPIO_HPDEPOP_LOW,
 	GPIO_AUD_CLK_MOSI_HIGH,
@@ -147,6 +153,12 @@ static struct audio_gpio_attr aud_gpios[GPIO_NUM] = {
 					    NULL},
 		[GPIO_AUD_CLK_MOSI_LOW] = {"aud_clk_mosi_pull_low", false,
 					   NULL},
+        /* Akita */
+        [GPIO_HS_HIGH] = {"aud_hw_sw_on", false, NULL},
+        [GPIO_HS_LOW] = {"aud_hw_sw_off", false, NULL},
+        [GPIO_HS_DBMDX_I2S_ON] = {"aud_dbmdx_on", false, NULL},
+        [GPIO_HS_DBMDX_I2S_OFF] = {"aud_dbmdx_off", false, NULL},
+        /* Akita */
 };
 #endif
 
@@ -525,6 +537,49 @@ int AudDrv_GPIO_EXTAMP_Select(int bEnable, int mode)
 #endif
 	return retval;
 }
+
+/* Akita */
+int Headset_sw_Control(int bEnable)
+{
+	int retval = 0;
+	if (bEnable == 1) {
+		if (aud_gpios[GPIO_HS_HIGH].gpio_prepare) {
+				retval = pinctrl_select_state(pinctrlaud,
+						aud_gpios[GPIO_HS_HIGH].gpioctrl);
+				if (retval)
+					pr_err("could not set aud_gpios[GPIO_HS_HIGH] pins\n");
+		}
+	} else {
+		if (aud_gpios[GPIO_HS_LOW].gpio_prepare) {
+			retval =
+			    pinctrl_select_state(pinctrlaud, aud_gpios[GPIO_HS_LOW].gpioctrl);
+			if (retval)
+				pr_err("could not set aud_gpios[GPIO_HS_LOW] pins\n");
+		}
+
+	}
+
+	return retval;
+}
+
+int Dbmdx_i2s_Control(int bEnable)
+{
+	int retval = 0;
+	if(bEnable==1){
+		if (AudDrv_GPIO_IsValid(GPIO_DBMDX_I2S_ON)){
+			retval = AudDrv_GPIO_Select(GPIO_DBMDX_I2S_ON);
+			printk(" dbmdx i2s enable\n");
+		}
+   }else{
+       if (AudDrv_GPIO_IsValid(GPIO_DBMDX_I2S_OFF)){
+            retval = AudDrv_GPIO_Select(GPIO_DBMDX_I2S_OFF);
+            printk(" dbmdx i2s disable\n");
+       }
+   }
+	return retval;
+}
+
+/* Akita */
 
 int AudDrv_GPIO_EXTAMP2_Select(int bEnable, int mode)
 {

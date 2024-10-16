@@ -70,6 +70,40 @@ static int mtk_i2s0_awb_probe(struct platform_device *pdev);
 static int mtk_i2s0_awb_pcm_close(struct snd_pcm_substream *substream);
 static int mtk_i2s0_dl1_awb_probe(struct snd_soc_platform *platform);
 
+/* Akita */
+#ifdef CONFIG_SND_SOC_DBMDX
+static struct snd_pcm_hardware mtk_I2S0_awb_hardware = {
+	.info = (SNDRV_PCM_INFO_INTERLEAVED),
+	.formats = SND_SOC_ADV_MT_FMTS,
+	.rates = SOC_HIGH_USE_RATE,
+	.rate_min = SOC_HIGH_USE_RATE_MIN,
+	.rate_max = SOC_HIGH_USE_RATE_MAX,
+	.channels_min = SOC_NORMAL_USE_CHANNELS_MIN,
+	.channels_max = SOC_NORMAL_USE_CHANNELS_MAX,
+	.buffer_bytes_max = AWB_MAX_BUFFER_SIZE,
+	.period_bytes_max = AWB_MAX_BUFFER_SIZE,
+	.periods_min = AWB_MIN_PERIOD_SIZE,
+	.periods_max = AWB_MAX_PERIOD_SIZE,
+	.fifo_size = 0,
+};
+#else
+static struct snd_pcm_hardware mtk_I2S0_awb_hardware = {
+	.info = (SNDRV_PCM_INFO_INTERLEAVED),
+	.formats = SND_SOC_STD_MT_FMTS,
+	.rates = SOC_HIGH_USE_RATE,
+	.rate_min = SOC_HIGH_USE_RATE_MIN,
+	.rate_max = SOC_HIGH_USE_RATE_MAX,
+	.channels_min = SOC_NORMAL_USE_CHANNELS_MIN,
+	.channels_max = SOC_NORMAL_USE_CHANNELS_MAX,
+	.buffer_bytes_max = AWB_MAX_BUFFER_SIZE,
+	.period_bytes_max = AWB_MAX_BUFFER_SIZE,
+	.periods_min = AWB_MIN_PERIOD_SIZE,
+	.periods_max = AWB_MAX_PERIOD_SIZE,
+	.fifo_size = 0,
+};
+#endif
+/* Akita */
+
 static struct snd_pcm_hardware mtk_I2S0_awb_hardware = {
 	.info = (SNDRV_PCM_INFO_INTERLEAVED),
 	.formats = SND_SOC_STD_MT_FMTS,
