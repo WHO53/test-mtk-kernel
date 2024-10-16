@@ -3803,6 +3803,15 @@ void bmd_ctrl_cmd_from_user(void *nl_data, struct fgd_nl_msg_t *ret_msg)
 		else
 			gm.ui_soc = (daemon_ui_soc + 50) / 100;
 
+        /* Akita */
+#ifdef CONFIG_MTK_DISABLE_TEMP_PROTECT
+		if (gm.ui_soc < 5) {
+			bm_err("CONFIG_MTK_DISABLE_TEMP_PROTECT,  gm.ui_soc:%d\n",gm.ui_soc);
+			gm.ui_soc = 4;
+		}
+#endif
+        /* Akita */
+
 		/* when UISOC changes, check the diff time for smooth */
 		if (old_uisoc != gm.ui_soc) {
 			get_monotonic_boottime(&now_time);

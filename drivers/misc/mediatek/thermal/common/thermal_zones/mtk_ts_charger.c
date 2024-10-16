@@ -31,7 +31,9 @@
 #else
 #include <charging.h>
 #endif
-
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 begin*/
+#include <tmp_bts.h>
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 end*/
 #define mtktscharger_TEMP_CRIT (150000) /* 150.000 degree Celsius */
 
 #define mtktscharger_dprintk(fmt, args...) \
@@ -80,8 +82,11 @@ static int mtktscharger_debug_log;
 /* This is to preserve last temperature readings from charger driver.
  * In case mtk_ts_charger.c fails to read temperature.
  */
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 begin*/
+#if 0
 static unsigned long prev_temp = 30000;
-
+#endif
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 end*/
 /**
  * If curr_temp >= polling_trip_temp1, use interval
  * else if cur_temp >= polling_trip_temp2 && curr_temp < polling_trip_temp1,
@@ -97,6 +102,8 @@ static int polling_factor2 = 10000;
 static struct charger_consumer *pthermal_consumer;
 #endif
 
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 begin*/
+#if 0
 #if (CONFIG_MTK_GAUGE_VERSION == 30)
 struct charger_consumer __attribute__ ((weak))
 *charger_manager_get_by_name(struct device *dev,
@@ -188,10 +195,519 @@ static int mtktscharger_get_hw_temp(void)
 }
 #endif
 
+#endif
+struct BTSCHARGER_TEMPERATURE {
+	__s32 BTSCHARGER_Temp;
+	__s32 TemperatureR;
+};
+
+static int g_RAP_pull_up_R = BTSCHARGER_RAP_PULL_UP_R;
+static int g_TAP_over_critical_low = BTSCHARGER_TAP_OVER_CRITICAL_LOW;
+static int g_RAP_pull_up_voltage = BTSCHARGER_RAP_PULL_UP_VOLTAGE;
+static int g_RAP_ntc_table = BTSCHARGER_RAP_NTC_TABLE;
+static int g_RAP_ADC_channel = BTSCHARGER_RAP_ADC_CHANNEL;
+
+static int g_btscharger_TemperatureR;
+/* struct BTSCHARGER_TEMPERATURE BTSCHARGER_Temperature_Table[] = {0}; */
+
+static struct BTSCHARGER_TEMPERATURE *BTSCHARGER_Temperature_Table;
+static int ntc_tbl_size;
+
+/* AP_NTC_BL197 */
+static struct BTSCHARGER_TEMPERATURE BTSCHARGER_Temperature_Table1[] = {
+	{-40, 74354},		/* FIX_ME */
+	{-35, 74354},		/* FIX_ME */
+	{-30, 74354},		/* FIX_ME */
+	{-25, 74354},		/* FIX_ME */
+	{-20, 74354},
+	{-15, 57626},
+	{-10, 45068},
+	{-5, 35548},
+	{0, 28267},
+	{5, 22650},
+	{10, 18280},
+	{15, 14855},
+	{20, 12151},
+	{25, 10000},		/* 10K */
+	{30, 8279},
+	{35, 6892},
+	{40, 5768},
+	{45, 4852},
+	{50, 4101},
+	{55, 3483},
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970}		/* FIX_ME */
+};
+
+/* AP_NTC_TSM_1 */
+static struct BTSCHARGER_TEMPERATURE BTSCHARGER_Temperature_Table2[] = {
+	{-40, 70603},		/* FIX_ME */
+	{-35, 70603},		/* FIX_ME */
+	{-30, 70603},		/* FIX_ME */
+	{-25, 70603},		/* FIX_ME */
+	{-20, 70603},
+	{-15, 55183},
+	{-10, 43499},
+	{-5, 34569},
+	{0, 27680},
+	{5, 22316},
+	{10, 18104},
+	{15, 14773},
+	{20, 12122},
+	{25, 10000},		/* 10K */
+	{30, 8294},
+	{35, 6915},
+	{40, 5795},
+	{45, 4882},
+	{50, 4133},
+	{55, 3516},
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004},		/* FIX_ME */
+	{60, 3004}		/* FIX_ME */
+};
+
+/* AP_NTC_10_SEN_1 */
+static struct BTSCHARGER_TEMPERATURE BTSCHARGER_Temperature_Table3[] = {
+	{-40, 74354},		/* FIX_ME */
+	{-35, 74354},		/* FIX_ME */
+	{-30, 74354},		/* FIX_ME */
+	{-25, 74354},		/* FIX_ME */
+	{-20, 74354},
+	{-15, 57626},
+	{-10, 45068},
+	{-5, 35548},
+	{0, 28267},
+	{5, 22650},
+	{10, 18280},
+	{15, 14855},
+	{20, 12151},
+	{25, 10000},		/* 10K */
+	{30, 8279},
+	{35, 6892},
+	{40, 5768},
+	{45, 4852},
+	{50, 4101},
+	{55, 3483},
+	{60, 2970},
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970},		/* FIX_ME */
+	{60, 2970}		/* FIX_ME */
+};
+
+/* AP_NTC_10(TSM0A103F34D1RZ) */
+static struct BTSCHARGER_TEMPERATURE BTSCHARGER_Temperature_Table4[] = {
+	{-40, 188500},
+	{-35, 144290},
+	{-30, 111330},
+	{-25, 86560},
+	{-20, 67790},
+	{-15, 53460},
+	{-10, 42450},
+	{-5, 33930},
+	{0, 27280},
+	{5, 22070},
+	{10, 17960},
+	{15, 14700},
+	{20, 12090},
+	{25, 10000},		/* 10K */
+	{30, 8310},
+	{35, 6940},
+	{40, 5830},
+	{45, 4910},
+	{50, 4160},
+	{55, 3540},
+	{60, 3020},
+	{65, 2590},
+	{70, 2230},
+	{75, 1920},
+	{80, 1670},
+	{85, 1450},
+	{90, 1270},
+	{95, 1110},
+	{100, 975},
+	{105, 860},
+	{110, 760},
+	{115, 674},
+	{120, 599},
+	{125, 534}
+};
+
+/* AP_NTC_47 */
+static struct BTSCHARGER_TEMPERATURE BTSCHARGER_Temperature_Table5[] = {
+	{-40, 483954},		/* FIX_ME */
+	{-35, 483954},		/* FIX_ME */
+	{-30, 483954},		/* FIX_ME */
+	{-25, 483954},		/* FIX_ME */
+	{-20, 483954},
+	{-15, 360850},
+	{-10, 271697},
+	{-5, 206463},
+	{0, 158214},
+	{5, 122259},
+	{10, 95227},
+	{15, 74730},
+	{20, 59065},
+	{25, 47000},		/* 47K */
+	{30, 37643},
+	{35, 30334},
+	{40, 24591},
+	{45, 20048},
+	{50, 16433},
+	{55, 13539},
+	{60, 11210},
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210},		/* FIX_ME */
+	{60, 11210}		/* FIX_ME */
+};
+
+
+/* NTCG104EF104F(100K) */
+static struct BTSCHARGER_TEMPERATURE BTSCHARGER_Temperature_Table6[] = {
+	{-40, 4251000},
+	{-35, 3005000},
+	{-30, 2149000},
+	{-25, 1554000},
+	{-20, 1135000},
+	{-15, 837800},
+	{-10, 624100},
+	{-5, 469100},
+	{0, 355600},
+	{5, 271800},
+	{10, 209400},
+	{15, 162500},
+	{20, 127000},
+	{25, 100000},		/* 100K */
+	{30, 79230},
+	{35, 63180},
+	{40, 50680},
+	{45, 40900},
+	{50, 33190},
+	{55, 27090},
+	{60, 22220},
+	{65, 18320},
+	{70, 15180},
+	{75, 12640},
+	{80, 10580},
+	{85, 8887},
+	{90, 7500},
+	{95, 6357},
+	{100, 5410},
+	{105, 4623},
+	{110, 3965},
+	{115, 3415},
+	{120, 2951},
+	{125, 2560}
+};
+
+/* NCP15WF104F03RC(100K) */
+static struct BTSCHARGER_TEMPERATURE BTSCHARGER_Temperature_Table7[] = {
+	{-40, 4397119},
+	{-35, 3088599},
+	{-30, 2197225},
+	{-25, 1581881},
+	{-20, 1151037},
+	{-15, 846579},
+	{-10, 628988},
+	{-5, 471632},
+	{0, 357012},
+	{5, 272500},
+	{10, 209710},
+	{15, 162651},
+	{20, 127080},
+	{25, 100000},		/* 100K */
+	{30, 79222},
+	{35, 63167},
+#if defined(APPLY_PRECISE_NTC_TABLE)
+	{40, 50677},
+	{41, 48528},
+	{42, 46482},
+	{43, 44533},
+	{44, 42675},
+	{45, 40904},
+	{46, 39213},
+	{47, 37601},
+	{48, 36063},
+	{49, 34595},
+	{50, 33195},
+	{51, 31859},
+	{52, 30584},
+	{53, 29366},
+	{54, 28203},
+	{55, 27091},
+	{56, 26028},
+	{57, 25013},
+	{58, 24042},
+	{59, 23113},
+	{60, 22224},
+	{61, 21374},
+	{62, 20560},
+	{63, 19782},
+	{64, 19036},
+	{65, 18322},
+	{66, 17640},
+	{67, 16986},
+	{68, 16360},
+	{69, 15759},
+	{70, 15184},
+	{71, 14631},
+	{72, 14100},
+	{73, 13591},
+	{74, 13103},
+	{75, 12635},
+	{76, 12187},
+	{77, 11756},
+	{78, 11343},
+	{79, 10946},
+	{80, 10565},
+	{81, 10199},
+	{82,  9847},
+	{83,  9509},
+	{84,  9184},
+	{85,  8872},
+	{86,  8572},
+	{87,  8283},
+	{88,  8005},
+	{89,  7738},
+	{90,  7481},
+#else
+	{40, 50677},
+	{45, 40904},
+	{50, 33195},
+	{55, 27091},
+	{60, 22224},
+	{65, 18323},
+	{70, 15184},
+	{75, 12635},
+	{80, 10566},
+	{85, 8873},
+	{90, 7481},
+#endif
+	{95, 6337},
+	{100, 5384},
+	{105, 4594},
+	{110, 3934},
+	{115, 3380},
+	{120, 2916},
+	{125, 2522}
+};
+
+
+/* convert register to temperature  */
+static __s16 mtkts_btscharger_thermistor_conver_temp(__s32 Res)
+{
+	int i = 0;
+	int asize = 0;
+	__s32 RES1 = 0, RES2 = 0;
+	__s32 TAP_Value = -200, TMP1 = 0, TMP2 = 0;
+
+	asize = (ntc_tbl_size / sizeof(struct BTSCHARGER_TEMPERATURE));
+	/* mtktscharger_dprintk("btscharger() :
+	 * asize = %d, Res = %d\n",asize,Res);
+	 */
+	if (Res >= BTSCHARGER_Temperature_Table[0].TemperatureR) {
+		TAP_Value = -40;	/* min */
+	} else if (Res <= BTSCHARGER_Temperature_Table[asize - 1].TemperatureR) {
+		TAP_Value = 125;	/* max */
+	} else {
+		RES1 = BTSCHARGER_Temperature_Table[0].TemperatureR;
+		TMP1 = BTSCHARGER_Temperature_Table[0].BTSCHARGER_Temp;
+		/* mtktscharger_dprintk("%d : RES1 = %d,TMP1 = %d\n",__LINE__,
+		 * RES1,TMP1);
+		 */
+
+		for (i = 0; i < asize; i++) {
+			if (Res >= BTSCHARGER_Temperature_Table[i].TemperatureR) {
+				RES2 = BTSCHARGER_Temperature_Table[i].
+								TemperatureR;
+
+				TMP2 = BTSCHARGER_Temperature_Table[i].
+								BTSCHARGER_Temp;
+				/* mtktscharger_dprintk("%d :i=%d, RES2 = %d,
+				 * TMP2 = %d\n",__LINE__,i,RES2,TMP2);
+				 */
+				break;
+			}
+			RES1 = BTSCHARGER_Temperature_Table[i].TemperatureR;
+			TMP1 = BTSCHARGER_Temperature_Table[i].BTSCHARGER_Temp;
+			/* mtktscharger_dprintk("%d :i=%d, RES1 = %d,
+			 * TMP1 = %d\n",__LINE__,i,RES1,TMP1);
+			 */
+		}
+
+		TAP_Value = (((Res - RES2) * TMP1) + ((RES1 - Res) * TMP2))
+								/ (RES1 - RES2);
+	}
+
+
+	return TAP_Value;
+}
+
+/* convert ADC_AP_temp_volt to register */
+/*Volt to Temp formula same with 6589*/
+static __s16 mtk_ts_btscharger_volt_to_temp(__u32 dwVolt)
+{
+	__s32 TRes;
+	__u64 dwVCriAP = 0;
+	__u64 dwVCriAP2 = 0;
+	__s32 BTSCHARGER_TMP = -100;
+
+	/* SW workaround-----------------------------------------------------
+	 * dwVCriAP = (TAP_OVER_CRITICAL_LOW * 1800) /
+	 * (TAP_OVER_CRITICAL_LOW + 39000);
+	 * dwVCriAP = (TAP_OVER_CRITICAL_LOW * RAP_PULL_UP_VOLT) /
+	 * (TAP_OVER_CRITICAL_LOW + RAP_PULL_UP_R);
+	 */
+
+	dwVCriAP = ((__u64)g_TAP_over_critical_low *
+		(__u64)g_RAP_pull_up_voltage);
+	dwVCriAP2 = (g_TAP_over_critical_low + g_RAP_pull_up_R);
+	do_div(dwVCriAP, dwVCriAP2);
+
+
+	if (dwVolt > ((__u32)dwVCriAP)) {
+		TRes = g_TAP_over_critical_low;
+	} else {
+		/* TRes = (39000*dwVolt) / (1800-dwVolt);
+		 * TRes = (RAP_PULL_UP_R*dwVolt) / (RAP_PULL_UP_VOLT-dwVolt);
+		 */
+		TRes = (g_RAP_pull_up_R * dwVolt)
+				/ (g_RAP_pull_up_voltage - dwVolt);
+	}
+	/* ------------------------------------------------------------------ */
+
+	g_btscharger_TemperatureR = TRes;
+
+	/* convert register to temperature */
+	BTSCHARGER_TMP = mtkts_btscharger_thermistor_conver_temp(TRes);
+
+	return BTSCHARGER_TMP;
+}
+
+static int mtktscharger_get_hw_temp(void)
+{
+
+	int ret = 0, data[4], i, ret_value = 0, ret_temp = 0, output;
+	int times = 1, Channel = g_RAP_ADC_channel; /* 6752=0(AUX_IN2_NTC) */
+	static int valid_temp;
+#if defined(APPLY_AUXADC_CALI_DATA)
+	int auxadc_cali_temp;
+#endif
+
+	if (IMM_IsAdcInitReady() == 0) {
+		mtktscharger_dprintk(
+			"[thermal_auxadc_get_data]: AUXADC is not ready\n");
+		return 0;
+	}
+
+	i = times;
+	while (i--) {
+		ret_value = IMM_GetOneChannelValue(Channel, data, &ret_temp);
+		if (ret_value) {/* AUXADC is busy */
+#if defined(APPLY_AUXADC_CALI_DATA)
+			auxadc_cali_temp = valid_temp;
+#else
+			ret_temp = valid_temp;
+#endif
+		} else {
+#if defined(APPLY_AUXADC_CALI_DATA)
+			/*
+			 * by reference mtk_auxadc.c
+			 *
+			 * convert to volt:
+			 *      data[0] = (rawdata * 1500 / (4096 + cali_ge)) /
+			 *                 1000;
+			 *
+			 * convert to mv, need multiply 10:
+			 *      data[1] = (rawdata * 150 / (4096 + cali_ge)) %
+			 *                 100;
+			 *
+			 * provide high precision mv:
+			 *      data[2] = (rawdata * 1500 / (4096 + cali_ge)) %
+			 *                 1000;
+			 */
+			auxadc_cali_temp = data[0]*1000+data[2];
+			valid_temp = auxadc_cali_temp;
+#else
+			valid_temp = ret_temp;
+#endif
+		}
+
+#if defined(APPLY_AUXADC_CALI_DATA)
+		ret += auxadc_cali_temp;
+		mtktscharger_dprintk(
+			"[thermal_auxadc_get_data(AUX_IN2_NTC)]: ret_temp=%d\n",
+			auxadc_cali_temp);
+#else
+		ret += ret_temp;
+		mtktscharger_dprintk(
+			"[thermal_auxadc_get_data(AUX_IN2_NTC)]: ret_temp=%d\n",
+			ret_temp);
+#endif
+	}
+
+	/* Mt_auxadc_hal.c */
+	/* #define VOLTAGE_FULL_RANGE  1500 // VA voltage */
+	/* #define AUXADC_PRECISE      4096 // 12 bits */
+#if defined(APPLY_AUXADC_CALI_DATA)
+#else
+	ret = ret * 1500 / 4096;
+#endif
+	/* ret = ret*1800/4096;//82's ADC power */
+	mtktscharger_dprintk("APtery output mV = %d\n", ret);
+	output = mtk_ts_btscharger_volt_to_temp(ret);
+	mtktscharger_dprintk("BTSCHARGER output temperature = %d\n", output);
+	return output;
+}
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 end*/
+
 static int mtktscharger_get_temp(struct thermal_zone_device *thermal, int *t)
 {
-	*t = mtktscharger_get_hw_temp();
-
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 begin*/
+	*t = mtktscharger_get_hw_temp() * 1000;
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 end*/
 	mtktscharger_dprintk("%s %d\n", __func__, *t);
 
 	if (*t >= 85000)
@@ -408,7 +924,49 @@ void mtktscharger_unregister_cooler(void)
 		cl_dev_sysrst = NULL;
 	}
 }
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 begin*/
+void mtkts_btscharger_prepare_table(int table_num)
+{
 
+	switch (table_num) {
+	case 1:		/* AP_NTC_BL197 */
+		BTSCHARGER_Temperature_Table = BTSCHARGER_Temperature_Table1;
+		ntc_tbl_size = sizeof(BTSCHARGER_Temperature_Table1);
+		break;
+	case 2:		/* AP_NTC_TSM_1 */
+		BTSCHARGER_Temperature_Table = BTSCHARGER_Temperature_Table2;
+		ntc_tbl_size = sizeof(BTSCHARGER_Temperature_Table2);
+		break;
+	case 3:		/* AP_NTC_10_SEN_1 */
+		BTSCHARGER_Temperature_Table = BTSCHARGER_Temperature_Table3;
+		ntc_tbl_size = sizeof(BTSCHARGER_Temperature_Table3);
+		break;
+	case 4:		/* AP_NTC_10 */
+		BTSCHARGER_Temperature_Table = BTSCHARGER_Temperature_Table4;
+		ntc_tbl_size = sizeof(BTSCHARGER_Temperature_Table4);
+		break;
+	case 5:		/* AP_NTC_47 */
+		BTSCHARGER_Temperature_Table = BTSCHARGER_Temperature_Table5;
+		ntc_tbl_size = sizeof(BTSCHARGER_Temperature_Table5);
+		break;
+	case 6:		/* NTCG104EF104F */
+		BTSCHARGER_Temperature_Table = BTSCHARGER_Temperature_Table6;
+		ntc_tbl_size = sizeof(BTSCHARGER_Temperature_Table6);
+		break;
+	case 7:		/* NCP15WF104F03RC */
+		BTSCHARGER_Temperature_Table = BTSCHARGER_Temperature_Table7;
+		ntc_tbl_size = sizeof(BTSCHARGER_Temperature_Table7);
+		break;
+	default:		/* AP_NTC_10 */
+		BTSCHARGER_Temperature_Table = BTSCHARGER_Temperature_Table4;
+		ntc_tbl_size = sizeof(BTSCHARGER_Temperature_Table4);
+		break;
+	}
+
+	pr_notice("[Thermal/TZ/BTSCHARGER] %s table_num=%d\n",
+						__func__, table_num);
+}
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 end*/
 static int mtktscharger_read(struct seq_file *m, void *v)
 {
 	seq_printf(m, "log=%d\n", mtktscharger_debug_log);
@@ -661,7 +1219,9 @@ static int __init mtktscharger_init(void)
 	struct proc_dir_entry *entry = NULL;
 	struct proc_dir_entry *mtktscharger_dir = NULL;
 #endif
-
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 begin*/		
+	mtkts_btscharger_prepare_table(g_RAP_ntc_table);
+/*[AKITA-8] m8 Charging bringup baidabin.wt 20190517 end*/
 	err = mtktscharger_register_cooler();
 	if (err)
 		return err;
