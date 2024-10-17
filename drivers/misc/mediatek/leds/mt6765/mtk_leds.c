@@ -46,6 +46,17 @@
 #include <mt-plat/met_drv.h>
 #endif
 
+extern char* boardid_get(void);
+#define BOARDID_FHD	"Aaron"
+
+struct pinctrl* ledctrl = NULL;
+struct pinctrl_state* led_default = NULL;
+struct pinctrl_state* red_on = NULL;
+struct pinctrl_state* red_off = NULL;
+struct pinctrl_state* green_on = NULL;
+struct pinctrl_state* green_off = NULL;
+int gpio_set_leds_level(char *name,int level);
+
 /* for LED&Backlight bringup, define the dummy API */
 #ifndef CONFIG_MTK_PMIC_NEW_ARCH
 u16 pmic_set_register_value(u32 flagname, u32 val)
@@ -315,6 +326,12 @@ struct cust_mt65xx_led *get_cust_led_dtsi(void)
 					LEDS_DEBUG
 					    ("kernel:the BL hw mode is BLS.\n");
 					break;
+				case MT65XX_LED_MODE_GPIO:
+					pled_dtsi[i].data =
+					    (long)gpio_set_leds_level;
+					LEDS_DEBUG
+					    ("kernel:the gpio hw mode is LED.\n");
+					break;
 				default:
 					break;
 				}
@@ -556,9 +573,12 @@ static int led_switch_breath_pmic(enum mt65xx_led_pmic pmic_type,
 
 #define PMIC_PERIOD_NUM 8
 
-int pmic_period_array[] = { 2, 4, 6, 8, 10, 12, 20, 60 };
-int pmic_freqsel_array[] = { 0, 1, 2, 3, 4, 5, 9, 28 };
+//int pmic_period_array[] = { 2, 4, 6, 8, 10, 12, 20, 60 };
+//int pmic_freqsel_array[] = { 0, 1, 2, 3, 4, 5, 9, 28 };
 
+/* 100 * period, ex: 0.01 Hz -> 0.01 * 100 = 1 */
+int pmic_period_array[] = { 250, 500, 1000, 1250, 1666, 2000, 2500, 10000 };
+int pmic_freqsel_array[] = { 0, 4, 199, 499, 999, 1999, 1999, 1999 };
 
 
 static int find_time_index_pmic(int time_ms)
@@ -847,7 +867,7 @@ int mt_mt65xx_led_set_cust(struct cust_mt65xx_led *cust, int level)
 
 	case MT65XX_LED_MODE_GPIO:
 		LEDS_DEBUG("brightness_set_cust:go GPIO mode!!!!!\n");
-		return ((cust_set_brightness) (cust->data)) (level);
+		return ((cust_set_gpio) (cust->data)) (cust->name,level);
 
 	case MT65XX_LED_MODE_PMIC:
 		/* for button baclight used SINK channel, when set button ISINK,
@@ -901,8 +921,29 @@ void mt_mt65xx_led_work(struct work_struct *work)
 	mutex_unlock(&leds_mutex);
 }
 
+struct LCM_BACKLIGHT_CUSTOM{
+	unsigned int max_brightness;
+	unsigned int min_brightness;
+	unsigned int max_bl_lvl;
+	unsigned int min_bl_lvl;
+};
+
+extern unsigned int lcm_backlight_cust_count;
+extern struct LCM_BACKLIGHT_CUSTOM lcm_backlight_cust[6];
+
+
+#define WINGTECH_MDSS_BRIGHT_TO_BL(out, v, bl_min, bl_max, min_bright, max_bright) do {\
+					if(v <= ((int)min_bright*(int)bl_max-(int)bl_min*(int)max_bright)\
+						/((int)bl_max - (int)bl_min)) out = 4; \
+					else \
+					out = (((int)bl_max - (int)bl_min)*v + \
+					((int)max_bright*(int)bl_min - (int)min_bright*(int)bl_max)) \
+					/((int)max_bright - (int)min_bright); \
+					} while (0)
+
 void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 {
+	int bl_lvl=0, i=0;
 	struct mt65xx_led_data *led_data =
 	    container_of(led_cdev, struct mt65xx_led_data, cdev);
 	/* unsigned long flags; */
@@ -925,14 +966,32 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 				    255;
 			}
 			backlight_debug_log(led_data->level, level);
-			disp_pq_notify_backlight_changed((((1 <<
-					MT_LED_INTERNAL_LEVEL_BIT_CNT)
-							    - 1) * level +
-							   127) / 255);
-			disp_aal_notify_backlight_changed((((1 <<
-					MT_LED_INTERNAL_LEVEL_BIT_CNT)
-							    - 1) * level +
-							   127) / 255);
+
+			/* Workaround for AARON-561. Only used on FHD */
+			if(boardid_get()) {
+				if(!strncmp(boardid_get(), BOARDID_FHD, 5)) {
+					if((level > 0) && (level <= 27)) {
+						level = 10;
+					}
+					pr_info("%s: board-FHD level = %d", __func__, level);
+				}
+			}
+
+			for(i=0; i<lcm_backlight_cust_count;i++)
+			{
+				//printk("led lcm backlight cust[i] : %d %d %d %d\n", lcm_backlight_cust[i].min_bl_lvl, lcm_backlight_cust[i].max_bl_lvl,
+				//				lcm_backlight_cust[i].min_brightness, lcm_backlight_cust[i].max_brightness);
+				if(( level >= lcm_backlight_cust[i].min_brightness ) && (level <=  lcm_backlight_cust[i].max_brightness ))
+					break;
+			}
+			WINGTECH_MDSS_BRIGHT_TO_BL(bl_lvl, (int)level, lcm_backlight_cust[i].min_bl_lvl, lcm_backlight_cust[i].max_bl_lvl,
+				lcm_backlight_cust[i].min_brightness, lcm_backlight_cust[i].max_brightness);
+
+			if(bl_lvl && !level) bl_lvl = 0;
+			if(!bl_lvl && level) bl_lvl = 4;
+
+			disp_pq_notify_backlight_changed(bl_lvl);
+			disp_aal_notify_backlight_changed(bl_lvl);
 		}
 	}
 #else
@@ -953,14 +1012,26 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 				    255;
 			}
 			backlight_debug_log(led_data->level, level);
-			disp_pq_notify_backlight_changed((((1 <<
-					MT_LED_INTERNAL_LEVEL_BIT_CNT)
-						- 1) * level +
-						127) / 255);
+
+		//	printk("led -0 level: %d, bl_lvl: %d \n", level, bl_lvl);
+			for(i=0; i<lcm_backlight_cust_count;i++)
+			{
+				//printk("led lcm backlight cust[i] : %d %d %d %d\n", lcm_backlight_cust[i].min_bl_lvl, lcm_backlight_cust[i].max_bl_lvl,
+				//			lcm_backlight_cust[i].min_brightness, lcm_backlight_cust[i].max_brightness);
+				if(( level >= lcm_backlight_cust[i].min_brightness ) && (level <=  lcm_backlight_cust[i].max_brightness ))
+					break;
+			}
+			WINGTECH_MDSS_BRIGHT_TO_BL(bl_lvl, level, lcm_backlight_cust[i].min_bl_lvl, lcm_backlight_cust[i].max_bl_lvl,
+					lcm_backlight_cust[i].min_brightness, lcm_backlight_cust[i].max_brightness);
+		//	printk("led -1 level: %d, bl_lvl: %d \n", level, bl_lvl);
+
+			if(bl_lvl && !level)bl_lvl = 0;
+			if(!bl_lvl && level) bl_lvl = 4;
+
+			disp_pq_notify_backlight_changed(bl_lvl);
 			if (led_data->cust.mode == MT65XX_LED_MODE_CUST_BLS_PWM)
 				mt_mt65xx_led_set_cust(&led_data->cust,
-					((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT)
-						- 1) * level + 127) / 255));
+					bl_lvl);
 			else
 				mt_mt65xx_led_set_cust(&led_data->cust, level);
 		}
@@ -1034,3 +1105,119 @@ int mt_mt65xx_blink_set(struct led_classdev *led_cdev,
 	/* delay_on and delay_off are not changed */
 	return 0;
 }
+
+int gpio_set_leds_level(char *name,int level)
+{
+	if (IS_ERR(ledctrl)) {
+		printk("cannot find ledctrl\n");
+		return 0;
+	}
+
+	if ((IS_ERR(red_on)) ||(IS_ERR(red_off))
+	||(IS_ERR(green_on))||(IS_ERR(green_off)))
+	{
+		printk("cannot find led node\n");
+		return 0;
+	}
+
+	printk("leds_pin:(%s)(%d)\n",name,level);
+
+	if (strcmp(name, "red") == 0){
+		if (level == 0){		
+			pinctrl_select_state(ledctrl, red_off);
+		}
+		else{
+			pinctrl_select_state(ledctrl, red_on);
+		}
+	}
+
+	if (strcmp(name, "green") == 0){
+		if (level == 0){		
+			pinctrl_select_state(ledctrl, green_off);
+		}
+		else{
+			pinctrl_select_state(ledctrl, green_on);
+		}
+	}
+
+	return 0;
+
+}
+
+static int led_pinctrl_probe(struct platform_device *pdev)
+{
+	printk("led_probe is enter.\n");
+	ledctrl = devm_pinctrl_get(&pdev->dev);
+	if (IS_ERR(ledctrl)) {
+		printk("cannot find ledctrl\n");
+		return 0;
+	}
+
+	led_default = pinctrl_lookup_state(ledctrl, "default");
+	if (IS_ERR(led_default)) {
+		printk("cannot find ledctrl led_default\n");
+	}
+	red_on = pinctrl_lookup_state(ledctrl, "red_on");
+	if (IS_ERR(red_on)) {
+		printk("cannot find ledctrl red_on\n");
+	}
+	red_off = pinctrl_lookup_state(ledctrl, "red_off");
+	if (IS_ERR(red_off)) {
+		printk("cannot find ledctrl red_off\n");
+	}
+	green_on = pinctrl_lookup_state(ledctrl, "green_on");
+	if (IS_ERR(green_on)) {
+		printk("cannot find ledctrl green_on\n");
+	}
+	green_off = pinctrl_lookup_state(ledctrl, "green_off");
+	if (IS_ERR(green_off)) {
+		printk("cannot find ledctrl green_off\n");
+	}
+
+	return 0;
+}
+
+static int led_pinctrl_remove(struct platform_device *pdev)
+{
+	return 0;
+}
+
+#if defined(CONFIG_OF)
+static const struct of_device_id led_pinctrl_of_match[] = {
+	{.compatible = "mediatek,led_pinctrl",},
+	{},
+};
+
+MODULE_DEVICE_TABLE(of, led_pinctrl_of_match);
+#endif
+
+static struct platform_driver led_pinctrl_driver = {
+	.probe = led_pinctrl_probe,
+	.remove = led_pinctrl_remove,
+	.driver = {
+		   .name = "led_pinctrl",
+#ifdef CONFIG_OF
+		   .of_match_table = led_pinctrl_of_match,
+#endif
+		   },
+};
+
+static int __init led_pinctrl_init(void)
+{
+	int ret;
+
+	printk("led_pinctrl_init\n");
+
+	ret = platform_driver_register(&led_pinctrl_driver);
+	if (ret) {
+		printk("Unable to register driver (%d)\n", ret);
+		return ret;
+	}
+		return 0;
+}
+
+static void __exit led_pinctrl_exit(void)
+{
+}
+module_init(led_pinctrl_init);
+module_exit(led_pinctrl_exit);

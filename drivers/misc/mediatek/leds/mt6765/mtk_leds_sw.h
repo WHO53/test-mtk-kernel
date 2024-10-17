@@ -45,6 +45,7 @@ enum mt65xx_led_mode {
 /* backlight call back function */
 typedef int (*cust_brightness_set) (int level, int div);
 typedef int (*cust_set_brightness) (int level);
+typedef int (*cust_set_gpio) (char *name,int level);
 
 /* 10bit backlight level */
 #define LED_INCREASE_LED_LEVEL_MTKPATCH
