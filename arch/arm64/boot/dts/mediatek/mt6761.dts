@@ -2932,6 +2932,7 @@ mipi_rx_ana_csi0b: mipi_rx_ana_csi0b@11c11000 {
 
         /* lenovo Akita */
 		akita_ac_charger_current = <1500000>;
+        akita_ac_charger_input_current = <1000000>;
 		akita_non_std_ac_charger_current = <900000>;
 		akita_charging_host_charger_current = <1000000>;
 
@@ -2939,12 +2940,12 @@ mipi_rx_ana_csi0b: mipi_rx_ana_csi0b@11c11000 {
 		anna_non_std_ac_charger_current = <500000>;
 
 		/* sw jeita */
-		jeita_temp_above_t4_cv = <0>;
-		jeita_temp_t3_to_t4_cv = <1200000>;
-		jeita_temp_t2_to_t3_cv = <2000000>;
-		jeita_temp_t1_to_t2_cv = <1000000>;
-		jeita_temp_t0_to_t1_cv = <0>;
-		jeita_temp_below_t0_cv = <0>;
+		jeita_temp_above_t4_cc = <0>;
+		jeita_temp_t3_to_t4_cc = <1200000>;
+		jeita_temp_t2_to_t3_cc = <2000000>;
+		jeita_temp_t1_to_t2_cc = <1000000>;
+		jeita_temp_t0_to_t1_cc = <0>;
+		jeita_temp_below_t0_cc = <0>;
 
         jeita_temp_above_t4_cic = <0>;
 		jeita_temp_t3_to_t4_cic = <1200000>;
